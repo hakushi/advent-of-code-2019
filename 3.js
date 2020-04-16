@@ -16,12 +16,11 @@ arrays.push(
   ).split(",")
 );
 
-const center = { x: 0, y: 0 };
+const center = { x: 0, y: 0, totalDistance: 0 };
 
 const movementToCoordinates = (initialPosition, direction, length) => {
   const coordinates = [];
   const currentPosition = initialPosition;
-
   for (let i = 0; i < length; i++) {
     switch (direction) {
       case "U":
@@ -37,7 +36,14 @@ const movementToCoordinates = (initialPosition, direction, length) => {
         currentPosition.x++;
         break;
     }
-    coordinates.push({ x: currentPosition.x, y: currentPosition.y });
+
+    currentPosition.totalDistance++;
+
+    coordinates.push({
+      x: currentPosition.x,
+      y: currentPosition.y,
+      totalDistance: currentPosition.totalDistance,
+    });
   }
 
   return { movementCoordinates: coordinates, currentPosition };
@@ -59,37 +65,84 @@ const getCoordinatesForRoute = (route) => {
 
     pointer.x = currentPosition.x;
     pointer.y = currentPosition.y;
+    pointer.totalDistance = currentPosition.totalDistance;
     movementCoordinates.forEach((coordinate) => coordinates.push(coordinate));
   });
+  return coordinates;
+};
 
+const mapCoordinatesToArray = (coordinates) => {
   const usedCoordinates = {};
-
   coordinates.forEach((coordinate) => {
-    if (
-      usedCoordinates.hasOwnProperty(coordinate.x) &&
-      !usedCoordinates[coordinate.x].includes(coordinate.y)
-    ) {
-      usedCoordinates[coordinate.x].push(coordinate.y);
+    const isCenter = coordinate.x === 0 && coordinate.y === 0;
+
+    if (isCenter) {
+      return;
+    }
+    if (!usedCoordinates.hasOwnProperty(coordinate.x)) {
+      usedCoordinates[coordinate.x] = {
+        [coordinate.y]: coordinate.totalDistance,
+      };
     } else {
-      usedCoordinates[coordinate.x] = [coordinate.y];
+      usedCoordinates[coordinate.x][coordinate.y] = coordinate.totalDistance;
     }
   });
 
   return usedCoordinates;
 };
 
+const getCommonX = (obj1, obj2, key) => {
+  if (obj1.hasOwnProperty(key) && !obj2.hasOwnProperty(key)) {
+    return null;
+  }
+  return [obj1[key], obj2[key]];
+};
+
+const getPossibleIntersections = (coordinates1, coordinates2) => {
+  const keys = Object.keys(coordinates1);
+  const possibleIntersections = [];
+
+  keys.forEach((key) => {
+    const commonX = getCommonX(coordinates1, coordinates2, key);
+    if (commonX) {
+      possibleIntersections.push({ [key]: commonX });
+    }
+  });
+
+  return possibleIntersections;
+};
+
 const getIntersections = (coordinates1, coordinates2) => {
   const intersections = [];
-  const keys1 = Object.keys(coordinates1);
 
-  keys1.forEach((x) => {
-    if (coordinates2.hasOwnProperty(x)) {
-      coordinates2[x].forEach((y) => {
-        if (coordinates1[x].includes(y) && parseInt(x, 10) !== 0 && y !== 0) {
-          intersections.push({ x: parseInt(x, 10), y: y });
-        }
-      });
-    }
+  const coordinatesObject1 = mapCoordinatesToArray(coordinates1);
+  const coordinatesObject2 = mapCoordinatesToArray(coordinates2);
+
+  const possibleIntersections = getPossibleIntersections(
+    coordinatesObject1,
+    coordinatesObject2
+  );
+
+  possibleIntersections.forEach((possibleIntersection) => {
+    const x = parseInt(Object.keys(possibleIntersection)[0]);
+
+    const yKeys1 = possibleIntersection[x][0];
+    const yKeys2 = possibleIntersection[x][1];
+
+    const y1 = Object.keys(yKeys1);
+    const y2 = Object.keys(yKeys2);
+
+    y1.forEach((y) => {
+      if (y2.includes(y)) {
+        intersections.push({
+          x,
+          y: parseInt(y, 10),
+          distance: yKeys1[y] + yKeys2[y],
+        });
+      }
+    });
+
+    return intersections;
   });
 
   return intersections;
@@ -98,16 +151,30 @@ const getIntersections = (coordinates1, coordinates2) => {
 const getManhattanDistances = (intersections) => {
   const arr = [];
   intersections.forEach((intersection) =>
-    arr.push(Math.abs(intersection.x) + Math.abs(intersection.y))
+    arr.push({
+      manhattan: Math.abs(intersection.x) + Math.abs(intersection.y),
+      distance: intersection.distance,
+    })
   );
+  return arr;
+};
 
-  return arr.sort((a, b) => a - b);
+const getShortestManhattanDistance = (intersections) => {
+  const manhattan = getManhattanDistances(intersections);
+  return manhattan.sort((a, b) => a.manhattan - b.manhattan)[0]["manhattan"];
+};
+
+const getShortestDistance = (intersections) => {
+  const manhattan = getManhattanDistances(intersections);
+  return manhattan.sort((a, b) => a.distance - b.distance)[0]["distance"];
 };
 
 const coordinates1 = getCoordinatesForRoute(arrays[6]);
 const coordinates2 = getCoordinatesForRoute(arrays[7]);
-
 const intersections = getIntersections(coordinates1, coordinates2);
-const distances = getManhattanDistances(intersections);
 
-console.log(distances);
+console.log(
+  "shortest manhattan: ",
+  getShortestManhattanDistance(intersections)
+);
+console.log("shortest distance: ", getShortestDistance(intersections));
