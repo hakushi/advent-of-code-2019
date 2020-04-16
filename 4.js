@@ -5,7 +5,19 @@ const hasTwoAdjacentDigits = (number) => {
   const numberString = String(number);
   const length = numberString.length;
   for (let i = 0; i < length - 1; i++) {
-    if (numberString[i] === numberString[i + 1]) {
+    if (
+      i === 0 &&
+      numberString[i] === numberString[i + 1] &&
+      numberString[i] !== numberString[i + 2]
+    ) {
+      return true;
+    }
+    if (
+      i > 0 &&
+      numberString[i] === numberString[i + 1] &&
+      numberString[i] !== numberString[i + 2] &&
+      numberString[i] !== numberString[i - 1]
+    ) {
       return true;
     }
   }
@@ -27,7 +39,7 @@ const neverDecrese = (number) => {
 
 let passwordCount = 0;
 
-for (let i = parseInt(MIN, 10); i < parseInt(MAX, 10); i++) {
+for (let i = parseInt(MIN, 10); i <= parseInt(MAX, 10); i++) {
   if (hasTwoAdjacentDigits(i) && neverDecrese(i)) {
     passwordCount++;
   }
